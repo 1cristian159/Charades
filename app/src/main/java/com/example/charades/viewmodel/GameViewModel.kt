@@ -12,6 +12,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel que gestiona la lógica del juego y el temporizador.
+ *
+ * Expone un flujo de [GameState] para que la UI pueda reaccionar a
+ * los cambios. Controla la categoría, la palabra actual, el tiempo,
+ * las puntuaciones y el avance de rondas.
+ */
 class GameViewModel : ViewModel() {
     
     private val _gameState = MutableStateFlow(GameState())
@@ -21,6 +28,7 @@ class GameViewModel : ViewModel() {
     private val totalTime = 60 // 1 minuto por ronda
     private val totalRounds = 10
     
+    /** Selecciona la categoría inicial y prepara la primera ronda. */
     fun selectCategory(category: Category) {
         _gameState.value = _gameState.value.copy(
             currentCategory = category,
@@ -30,10 +38,13 @@ class GameViewModel : ViewModel() {
             roundNumber = 1,
             totalRounds = totalRounds,
             isTimeUp = false,
-            gameFinished = false
+            gameFinished = false,
+            team1PlayedThisRound = false,
+            team2PlayedThisRound = false
         )
     }
     
+    /** Inicia el conteo del temporizador de la ronda actual. */
     fun startGame() {
         if (_gameState.value.currentCategory != null) {
             _gameState.value = _gameState.value.copy(
@@ -44,6 +55,7 @@ class GameViewModel : ViewModel() {
         }
     }
     
+    /** Alterna entre pausar y reanudar el temporizador. */
     fun pauseResumeGame() {
         val currentState = _gameState.value
         if (currentState.isGameActive) {
@@ -57,6 +69,7 @@ class GameViewModel : ViewModel() {
         }
     }
     
+    /** Registra una respuesta correcta y avanza a la siguiente palabra y equipo. */
     fun correctAnswer() {
         val currentState = _gameState.value
         if (currentState.isGameActive && !currentState.isTimeUp) {
@@ -70,13 +83,52 @@ class GameViewModel : ViewModel() {
             val nextTeam = if (currentState.currentTeam == 1) 2 else 1
             val nextWord = getNextWord()
             
-            _gameState.value = currentState.copy(
-                team1Score = newTeam1Score,
-                team2Score = newTeam2Score,
-                currentTeam = nextTeam,
-                currentWord = nextWord,
-                timeRemaining = totalTime
-            )
+            // Marcar que el equipo actual ya jugó esta ronda
+            val updatedState = if (currentState.currentTeam == 1) {
+                currentState.copy(team1PlayedThisRound = true)
+            } else {
+                currentState.copy(team2PlayedThisRound = true)
+            }
+            
+            // Verificar si ambos equipos han jugado esta ronda
+            val bothTeamsPlayed = updatedState.team1PlayedThisRound && updatedState.team2PlayedThisRound
+            
+            if (bothTeamsPlayed) {
+                // Ambos equipos han jugado - avanzar a la siguiente ronda
+                val nextRound = currentState.roundNumber + 1
+                
+                if (nextRound <= totalRounds) {
+                    // Nueva ronda - resetear flags y empezar con equipo 1
+                    _gameState.value = updatedState.copy(
+                        team1Score = newTeam1Score,
+                        team2Score = newTeam2Score,
+                        roundNumber = nextRound,
+                        currentTeam = 1,
+                        currentWord = getNextWord(),
+                        timeRemaining = totalTime,
+                        isTimeUp = false,
+                        team1PlayedThisRound = false,
+                        team2PlayedThisRound = false
+                    )
+                } else {
+                    // Juego terminado
+                    _gameState.value = updatedState.copy(
+                        team1Score = newTeam1Score,
+                        team2Score = newTeam2Score,
+                        gameFinished = true,
+                        isGameActive = false
+                    )
+                }
+            } else {
+                // Solo un equipo ha jugado - cambiar al otro equipo
+                _gameState.value = updatedState.copy(
+                    team1Score = newTeam1Score,
+                    team2Score = newTeam2Score,
+                    currentTeam = nextTeam,
+                    currentWord = nextWord,
+                    timeRemaining = totalTime
+                )
+            }
             
             // Reiniciar temporizador
             timerJob?.cancel()
@@ -84,6 +136,7 @@ class GameViewModel : ViewModel() {
         }
     }
     
+    /** Omite la palabra actual y cede el turno al otro equipo. */
     fun skipWord() {
         val currentState = _gameState.value
         if (currentState.isGameActive && !currentState.isTimeUp) {
@@ -91,11 +144,46 @@ class GameViewModel : ViewModel() {
             val nextTeam = if (currentState.currentTeam == 1) 2 else 1
             val nextWord = getNextWord()
             
-            _gameState.value = currentState.copy(
-                currentTeam = nextTeam,
-                currentWord = nextWord,
-                timeRemaining = totalTime
-            )
+            // Marcar que el equipo actual ya jugó esta ronda
+            val updatedState = if (currentState.currentTeam == 1) {
+                currentState.copy(team1PlayedThisRound = true)
+            } else {
+                currentState.copy(team2PlayedThisRound = true)
+            }
+            
+            // Verificar si ambos equipos han jugado esta ronda
+            val bothTeamsPlayed = updatedState.team1PlayedThisRound && updatedState.team2PlayedThisRound
+            
+            if (bothTeamsPlayed) {
+                // Ambos equipos han jugado - avanzar a la siguiente ronda
+                val nextRound = currentState.roundNumber + 1
+                
+                if (nextRound <= totalRounds) {
+                    // Nueva ronda - resetear flags y empezar con equipo 1
+                    _gameState.value = updatedState.copy(
+                        roundNumber = nextRound,
+                        currentTeam = 1,
+                        currentWord = getNextWord(),
+                        timeRemaining = totalTime,
+                        isTimeUp = false,
+                        team1PlayedThisRound = false,
+                        team2PlayedThisRound = false
+                    )
+                } else {
+                    // Juego terminado
+                    _gameState.value = updatedState.copy(
+                        gameFinished = true,
+                        isGameActive = false
+                    )
+                }
+            } else {
+                // Solo un equipo ha jugado - cambiar al otro equipo
+                _gameState.value = updatedState.copy(
+                    currentTeam = nextTeam,
+                    currentWord = nextWord,
+                    timeRemaining = totalTime
+                )
+            }
             
             // Reiniciar temporizador
             timerJob?.cancel()
@@ -103,6 +191,7 @@ class GameViewModel : ViewModel() {
         }
     }
     
+    /** Finaliza el juego y muestra los resultados. */
     fun finishGame() {
         timerJob?.cancel()
         _gameState.value = _gameState.value.copy(
@@ -111,6 +200,7 @@ class GameViewModel : ViewModel() {
         )
     }
     
+    /** Reinicia el juego manteniendo la misma categoría. */
     fun restartGame() {
         timerJob?.cancel()
         val currentCategory = _gameState.value.currentCategory
@@ -126,16 +216,20 @@ class GameViewModel : ViewModel() {
                 roundNumber = 1,
                 totalRounds = totalRounds,
                 isTimeUp = false,
-                gameFinished = false
+                gameFinished = false,
+                team1PlayedThisRound = false,
+                team2PlayedThisRound = false
             )
         }
     }
     
+    /** Restablece el estado para volver al menú de categorías. */
     fun resetToMenu() {
         timerJob?.cancel()
         _gameState.value = GameState()
     }
     
+    /** Lanza una corrutina que decrementa el temporizador cada segundo. */
     private fun startTimer() {
         timerJob = viewModelScope.launch {
             while (_gameState.value.timeRemaining > 0 && _gameState.value.isGameActive) {
@@ -149,30 +243,51 @@ class GameViewModel : ViewModel() {
                     )
                     
                     if (newTimeRemaining == 0) {
-                        // Tiempo agotado - cambiar de equipo
-                        val nextTeam = if (currentState.currentTeam == 1) 2 else 1
-                        val nextWord = getNextWord()
-                        val nextRound = currentState.roundNumber + 1
+                        // Marcar que el equipo actual ya jugó esta ronda
+                        val updatedState = if (currentState.currentTeam == 1) {
+                            currentState.copy(team1PlayedThisRound = true)
+                        } else {
+                            currentState.copy(team2PlayedThisRound = true)
+                        }
                         
-                        _gameState.value = _gameState.value.copy(
-                            currentTeam = nextTeam,
-                            currentWord = nextWord,
-                            timeRemaining = totalTime,
-                            roundNumber = nextRound,
-                            isTimeUp = false,
-                            isGameActive = nextRound <= totalRounds
-                        )
+                        // Verificar si ambos equipos han jugado esta ronda
+                        val bothTeamsPlayed = updatedState.team1PlayedThisRound && updatedState.team2PlayedThisRound
                         
-                        if (nextRound <= totalRounds) {
-                            // Continuar con la siguiente ronda
+                        if (bothTeamsPlayed) {
+                            // Ambos equipos han jugado - avanzar a la siguiente ronda
+                            val nextRound = currentState.roundNumber + 1
+                            
+                            if (nextRound <= totalRounds) {
+                                // Nueva ronda - resetear flags y empezar con equipo 1
+                                _gameState.value = updatedState.copy(
+                                    roundNumber = nextRound,
+                                    currentTeam = 1,
+                                    currentWord = getNextWord(),
+                                    timeRemaining = totalTime,
+                                    isTimeUp = false,
+                                    team1PlayedThisRound = false,
+                                    team2PlayedThisRound = false
+                                )
+                                delay(2000) // Pausa de 2 segundos antes de continuar
+                                startTimer()
+                            } else {
+                                // Juego terminado
+                                _gameState.value = updatedState.copy(
+                                    gameFinished = true,
+                                    isGameActive = false
+                                )
+                            }
+                        } else {
+                            // Solo un equipo ha jugado - cambiar al otro equipo
+                            val nextTeam = if (currentState.currentTeam == 1) 2 else 1
+                            _gameState.value = updatedState.copy(
+                                currentTeam = nextTeam,
+                                currentWord = getNextWord(),
+                                timeRemaining = totalTime,
+                                isTimeUp = false
+                            )
                             delay(2000) // Pausa de 2 segundos antes de continuar
                             startTimer()
-                        } else {
-                            // Juego terminado
-                            _gameState.value = _gameState.value.copy(
-                                gameFinished = true,
-                                isGameActive = false
-                            )
                         }
                         break
                     }
@@ -181,6 +296,7 @@ class GameViewModel : ViewModel() {
         }
     }
     
+    /** Obtiene la siguiente palabra de la categoría actual. */
     private fun getNextWord(): String {
         val currentCategory = _gameState.value.currentCategory
         return if (currentCategory != null) {

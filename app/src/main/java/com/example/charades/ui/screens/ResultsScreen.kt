@@ -16,6 +16,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * Pantalla de resultados finales del juego.
+ *
+ * Muestra el equipo ganador (o empate), las puntuaciones finales, estadísticas
+ * generales y acciones para reiniciar o volver al menú.
+ */
 @Composable
 fun ResultsScreen(
     team1Score: Int,
@@ -112,6 +118,9 @@ fun ResultsScreen(
     }
 }
 
+/**
+ * Tarjeta que muestra el equipo ganador.
+ */
 @Composable
 fun WinnerCard(
     winnerTeam: Int,
@@ -130,12 +139,7 @@ fun WinnerCard(
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "🏆",
-                fontSize = 32.sp
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "¡EQUIPO $winnerTeam GANA!",
+                text = "Equipo $winnerTeam ganador",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFFFFD700)
@@ -144,6 +148,9 @@ fun WinnerCard(
     }
 }
 
+/**
+ * Tarjeta que indica un resultado de empate.
+ */
 @Composable
 fun TieCard(
     modifier: Modifier = Modifier
@@ -161,12 +168,7 @@ fun TieCard(
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "🤝",
-                fontSize = 32.sp
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "¡EMPATE!",
+                text = "Empate",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary

@@ -16,6 +16,12 @@ import androidx.compose.ui.unit.sp
 import com.example.charades.data.GameRepository
 import com.example.charades.data.Category
 
+/**
+ * Pantalla de selección de categorías.
+ *
+ * Muestra una cuadrícula con las categorías disponibles y notifica
+ * la selección mediante el callback [onCategorySelected].
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategorySelectionScreen(
@@ -65,6 +71,9 @@ fun CategorySelectionScreen(
     }
 }
 
+/**
+ * Tarjeta de categoría usada dentro de la cuadrícula de selección.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryCard(

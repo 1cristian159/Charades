@@ -2,6 +2,13 @@ package com.example.charades.model
 
 import com.example.charades.data.Category
 
+/**
+ * Estado inmutable del juego de charadas.
+ *
+ * Se utiliza como única fuente de verdad para la UI. Cualquier cambio
+ * en el estado se refleja en pantalla al recolectar el flujo expuesto
+ * por el ViewModel.
+ */
 data class GameState(
     val currentCategory: Category? = null,
     val currentWord: String = "",
@@ -13,5 +20,7 @@ data class GameState(
     val roundNumber: Int = 1,
     val totalRounds: Int = 10,
     val isTimeUp: Boolean = false,
-    val gameFinished: Boolean = false
+    val gameFinished: Boolean = false,
+    val team1PlayedThisRound: Boolean = false,
+    val team2PlayedThisRound: Boolean = false
 )

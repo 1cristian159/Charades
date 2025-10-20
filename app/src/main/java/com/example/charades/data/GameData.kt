@@ -1,11 +1,18 @@
 package com.example.charades.data
 
+/**
+ * Representa una categoría de juego con su identificador, nombre y
+ * lista de palabras posibles para adivinar.
+ */
 data class Category(
     val id: Int,
     val name: String,
     val words: List<String>
 )
 
+/**
+ * Proveedor de datos en memoria para categorías y selección de palabras.
+ */
 object GameRepository {
     val categories = listOf(
         Category(
@@ -64,11 +71,18 @@ object GameRepository {
         )
     )
 
+    /**
+     * Obtiene una palabra aleatoria perteneciente a la categoría indicada.
+     * Devuelve null si la categoría no existe o no tiene palabras.
+     */
     fun getRandomWord(categoryId: Int): String? {
         val category = categories.find { it.id == categoryId }
         return category?.words?.random()
     }
 
+    /**
+     * Recupera una categoría por su identificador, o null si no existe.
+     */
     fun getCategoryById(id: Int): Category? {
         return categories.find { it.id == id }
     }
